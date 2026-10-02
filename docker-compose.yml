@@ -1,0 +1,48 @@
+# Local development services only (PostgreSQL + Redis).
+# PHP/Apache still run from XAMPP. Credentials are read from Laravel's .env,
+# so there is a single source of truth and no secrets in this file.
+#
+#   Start:  docker compose up -d
+#   Stop:   docker compose down        (data is kept in the named volumes)
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: pg-gateway-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      # Bound to 127.0.0.1 so the database is not reachable from your network.
+      # Host port 5433 avoids the native PostgreSQL already on 5432.
+      - "127.0.0.1:${DB_PORT:-5433}:5432"
+    volumes:
+      # PostgreSQL 18+ images expect the volume at /var/lib/postgresql
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_DATABASE}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    container_name: pg-gateway-redis
+    restart: unless-stopped
+    # appendonly = persist queued jobs to disk so a restart doesn't lose them
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
+  redisdata:
