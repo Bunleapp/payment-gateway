@@ -25,3 +25,7 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+
+# Local learning notes (not part of project documentation)
+LEARNING_NOTES.md
